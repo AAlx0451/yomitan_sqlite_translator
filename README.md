@@ -63,7 +63,7 @@ cd yomitan_sqlite_translator
 1.  Поместите ваш `.zip` файл со словарём в папку с проектом.
 2.  Запустите скрипт конвертации:
     ```bash
-    python3 process.py имя_вашего_словаря.zip
+    python process.py имя_вашего_словаря.zip
     ```
     После выполнения этой команды в папке появится файл `dict.db`.
 
@@ -98,7 +98,7 @@ chmod +x translate.sh
 
 После того как все строки будут переведены, используйте скрипт `reverse.py` для создания финального `.zip` файла словаря для Yomitan:
 ```bash
-python3 reverse.py dict.db -o TranslatedDict.zip
+python reverse.py dict.db -o TranslatedDict.zip
 ```
 Файл `TranslatedDict.zip` готов к использованию.
 
