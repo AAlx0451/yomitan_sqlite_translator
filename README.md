@@ -1,5 +1,4 @@
 # yomitan_sqlite_translator
-Dictionary translator for Wakari-chan/Yomitan
 
 Инструкция (потом будет Markdown, under construction)
 
