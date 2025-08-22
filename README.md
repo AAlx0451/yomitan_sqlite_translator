@@ -37,8 +37,8 @@
 
 Сначала клонируйте репозиторий и перейдите в созданную директорию:
 ```bash
-git clone [URL_ВАШЕГО_РЕПОЗИТОРИЯ]
-cd [ИМЯ_ПАПКИ_РЕПОЗИТОРИЯ]
+git clone https://github.com/AAlx0451/yomitan_sqlite_translator/
+cd yomitan_sqlite_translator
 ```
 
 ### Шаг 2: Настройка API ключа
