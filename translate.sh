@@ -34,7 +34,7 @@ declare -A COLORS=(
     [API]='\033[1;35m' [OK]='\033[1;32m' [INFO]='\033[0;34m'
     [DIM]='\033[2m'    [RESET]='\033[0m' [ERROR]='\033[1;31m' [WARN]='\033[95m'
 )
-SEPARATOR="${COLORS[INFO]}───────────────────────────────────────────────────────────────${COLORS[RESET]}"
+SEPARATOR="${COLORS[INFO]}──────────────────────────────────────────────────────────────${COLORS[RESET]}"
 
 # --- Логирование ---
 log()       { echo -e "${COLORS[$1]}[$1]${COLORS[RESET]} $2"; }
