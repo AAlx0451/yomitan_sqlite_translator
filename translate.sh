@@ -7,7 +7,7 @@ IFS=$'\n\t'
 # ==============================================================================
 
 # --- Настройки ---
-DB_FILE="${HOME}/dict.db"
+DB_FILE="dict.db"
 TABLE_NAME="translations"
 SRC_COLUMN="english"
 DST_COLUMN="russian"
