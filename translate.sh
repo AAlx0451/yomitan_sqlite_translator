@@ -173,6 +173,7 @@ Strict rules:
                 printf '%s\n' "${translations[@]: -3}"
             fi
             sleep 5
+            echo -e "$SEPARATOR"
             continue
         fi
 
