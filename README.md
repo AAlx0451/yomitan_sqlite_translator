@@ -63,7 +63,7 @@ cd yomitan_sqlite_translator
 1.  Поместите ваш `.zip` файл со словарём в папку с проектом под названием `dict.zip`.
 2.  Запустите скрипт конвертации:
     ```bash
-    python process.py имя_вашего_словаря.zip
+    python process.py
     ```
     После выполнения этой команды в папке появится файл `dict.db`.
 
@@ -73,16 +73,16 @@ cd yomitan_sqlite_translator
 
 ```bash
 # --- Настройки ---
-DB_FILE="${HOME}/dict.db"        # Путь к файлу базы данных SQLite
-TABLE_NAME="translations"        # Имя таблицы со словами
+DB_FILE="dict.db"        # Путь к файлу базы данных SQLite
+TABLE_NAME="dictionary"        # Имя таблицы со словами
 SRC_COLUMN="english"             # Название колонки с исходным текстом
 DST_COLUMN="russian"             # Название колонки, куда будет сохранён перевод
 PK_COLUMN="id"                # Первичный ключ (обычно можно не менять)
 
 BATCH_SIZE=300                   # Количество строк для перевода за один API-запрос
 MODEL="gemini-2.5-flash-lite"    # Модель Gemini для использования
-SRC_LANG="English"               # Исходный язык (для промпта)
-DST_LANG="Russian"               # Целевой язык (для промпта)
+SRC_LANG="english"               # Исходный язык (для промпта)
+DST_LANG="russian"               # Целевой язык (для промпта)
 ```
 
 ### Шаг 5: Запуск перевода
@@ -102,9 +102,9 @@ chmod +x translate.sh
 
 После того как все строки будут переведены, используйте скрипт `reverse.py` для создания финального `.zip` файла словаря для Yomitan:
 ```bash
-python reverse.py dict.db -o TranslatedDict.zip
+python reverse.py
 ```
-Файл `TranslatedDict.zip` готов к использованию.
+Файл `dict_trans.zip` готов к использованию.
 
 ---
 
