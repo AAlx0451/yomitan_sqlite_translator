@@ -3,18 +3,19 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # ==============================================================================
-# =                  Gemini SQLite Batch Translator (v5.0)                     =
+# =            Gemini SQLite Batch Translator (v5.2 - Universal)               =
+# =    Адаптирован для работы с БД, созданной universal_importer.py            =
 # ==============================================================================
 
 # --- Настройки ---
-DB_FILE="dict.db"
-TABLE_NAME="translations"
-SRC_COLUMN="english"
-DST_COLUMN="russian"
-PK_COLUMN="rowid"
+DB_FILE="dict.db"           # Имя файла базы данных
+TABLE_NAME="dictionary"     # Имя таблицы из универсального импортера
+SRC_COLUMN="english"        # Колонка с исходным текстом
+DST_COLUMN="russian"        # Целевая колонка для русского перевода
+PK_COLUMN="id"              # Первичный ключ 'id' из новой таблицы
 
 BATCH_SIZE=300
-MODEL="gemini-2.5-flash-lite"      # Модель по умолчанию
+MODEL="gemini-2.5-flash-lite" # Модель по умолчанию
 SRC_LANG="English"
 DST_LANG="Russian"
 
@@ -50,7 +51,7 @@ require_tools() {
     done
 }
 
-# --- API вызов ---
+# --- API вызов с автоповтором ---
 gemini_api_call() {
     local request_body="$1" response error
     while true; do
@@ -59,44 +60,16 @@ gemini_api_call() {
             -H "X-goog-api-key: $CURRENT_API_KEY" \
             -d "$request_body" \
             "${BASE_API_URL}${MODEL}:generateContent") || {
-                log_error "Сеть недоступна или запрос не удался"
-                return 1
+                log_error "Сетевая ошибка или сбой curl. Повтор через 60 секунд..."
+                sleep 60
+                continue
             }
 
         error=$(jq -r '.error.message // empty' <<<"$response")
         if [[ -n "$error" ]]; then
             log_error "Ошибка API: ${COLORS[DIM]}$error${COLORS[RESET]}"
-            echo "Действия: [k] сменить ключ, [m] сменить модель, [q] выход."
-            read -rp "Ваш выбор (k/m/q): " action
-            case "$action" in
-                k|K)
-                    read -rsp "Введите новый GOOGLE_API_KEY: " new_key
-                    echo
-                    [[ -n "$new_key" ]] || { log_error "Ключ не введён"; continue; }
-                    CURRENT_API_KEY="$new_key"
-                    log_ok "Ключ обновлён."
-                    ;;
-                m|M)
-                    echo "Доступные модели:"
-                    for i in "${!AVAILABLE_MODELS[@]}"; do
-                        echo "  $((i+1))) ${AVAILABLE_MODELS[i]}"
-                    done
-                    read -rp "Выберите модель (номер): " idx
-                    if [[ "$idx" =~ ^[0-9]+$ ]] && (( idx>=1 && idx<=${#AVAILABLE_MODELS[@]} )); then
-                        MODEL="${AVAILABLE_MODELS[idx-1]}"
-                        log_ok "Выбрана модель: $MODEL"
-                    else
-                        log_error "Неверный выбор модели."
-                    fi
-                    ;;
-                q|Q)
-                    log_warn "Завершение работы по выбору пользователя."
-                    exit 0
-                    ;;
-                *)
-                    log_warn "Неизвестный ввод, повторите."
-                    ;;
-            esac
+            log_warn "Автоматический повтор через 60 секунд..."
+            sleep 60
             continue
         fi
         echo "$response"
@@ -109,7 +82,7 @@ main() {
     require_tools
     [[ -n "$CURRENT_API_KEY" ]] || { log_error "GOOGLE_API_KEY не найден"; exit 1; }
 
-    # Проверка/создание колонки
+    # Проверка/создание колонки DST_COLUMN ("russian")
     if ! sqlite3 "$DB_FILE" "PRAGMA table_info('$TABLE_NAME');" | grep -q "|$DST_COLUMN|"; then
         log_warn "Колонка '$DST_COLUMN' отсутствует. Создаю..."
         sqlite3 "$DB_FILE" "ALTER TABLE \"$TABLE_NAME\" ADD COLUMN \"$DST_COLUMN\" TEXT;"
@@ -149,7 +122,7 @@ Strict rules:
         log_info "Отправка ${#ids[@]} строк в $MODEL..."
         local start=$(date +%s.%N)
         local req=$(jq -n --arg text "$prompt" '{"contents":[{"parts":[{"text":$text}]}]}')
-        local resp; resp=$(gemini_api_call "$req") || { sleep 5; continue; }
+        local resp; resp=$(gemini_api_call "$req")
         local elapsed=$(echo "$(date +%s.%N) - $start" | bc)
         log_ok "Ответ за ${elapsed}s"
 
@@ -157,21 +130,8 @@ Strict rules:
         mapfile -t translations < <(echo -e "$text" | sed 's/^[0-9]\+\.\s*//')
 
         if (( ${#translations[@]} != ${#ids[@]} )); then
-            log_warn "Несоответствие строк (${#translations[@]} != ${#ids[@]})."
-            if (( ${#translations[@]} > 1 )); then
-                local save_count=$(( ${#translations[@]} - 1 ))
-                log_warn "Сохраняю $save_count строк (частично)."
-                {
-                    echo "BEGIN;"
-                    for i in $(seq 0 $((save_count-1))); do
-                        safe=$(printf "%s" "${translations[i]}" | sed "s/'/''/g")
-                        echo "UPDATE \"$TABLE_NAME\" SET \"$DST_COLUMN\"='$safe' WHERE \"$PK_COLUMN\"=${ids[i]};"
-                    done
-                    echo "COMMIT;"
-                } | sqlite3 "$DB_FILE"
-                log_warn "Последние строки ответа:"
-                printf '%s\n' "${translations[@]: -3}"
-            fi
+            log_warn "Несоответствие строк в ответе (${#translations[@]}) и запросе (${#ids[@]}). Повтор батча через 5с."
+            log_warn "Текст ответа:\n${text}"
             sleep 5
             echo -e "$SEPARATOR"
             continue
